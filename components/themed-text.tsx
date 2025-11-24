@@ -1,6 +1,8 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
+import { useMemo } from 'react';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useAppTheme } from '@/contexts/theme-context';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
@@ -16,45 +18,55 @@ export function ThemedText({
   ...rest
 }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const {
+    tokens: { typography, colors: themeColors },
+  } = useAppTheme();
+
+  const dynamicStyles = useMemo(
+    () =>
+      StyleSheet.create({
+        default: {
+          fontSize: typography.body,
+          lineHeight: typography.body * 1.4,
+          fontFamily: typography.fontFamily,
+          fontWeight: typography.weight.regular,
+        },
+        defaultSemiBold: {
+          fontSize: typography.body,
+          lineHeight: typography.body * 1.4,
+          fontFamily: typography.fontFamily,
+          fontWeight: typography.weight.medium,
+        },
+        title: {
+          fontSize: typography.heading,
+          fontWeight: typography.weight.bold,
+        },
+        subtitle: {
+          fontSize: typography.subheading,
+          fontWeight: typography.weight.bold,
+        },
+        link: {
+          lineHeight: typography.body * 1.4,
+          fontSize: typography.body,
+          color: themeColors.accent,
+          textDecorationLine: 'underline',
+        },
+      }),
+    [typography, themeColors],
+  );
 
   return (
     <Text
       style={[
         { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
+        type === 'default' ? dynamicStyles.default : undefined,
+        type === 'title' ? dynamicStyles.title : undefined,
+        type === 'defaultSemiBold' ? dynamicStyles.defaultSemiBold : undefined,
+        type === 'subtitle' ? dynamicStyles.subtitle : undefined,
+        type === 'link' ? dynamicStyles.link : undefined,
         style,
       ]}
       {...rest}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  link: {
-    lineHeight: 30,
-    fontSize: 16,
-    color: '#0a7ea4',
-  },
-});

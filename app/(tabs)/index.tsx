@@ -1,98 +1,164 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import MapView, { Marker, UrlTile } from 'react-native-maps';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+import { LocationCard } from '@/components/location-card';
+import { LoadingIndicator } from '@/components/loading-indicator';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { ViewModeToggle } from '@/components/view-mode-toggle';
+import { useAppTheme } from '@/contexts/theme-context';
+import { useLocations } from '@/hooks/use-locations';
+import { Location } from '@/types/location';
 
-export default function HomeScreen() {
+type ViewMode = 'list' | 'map';
+
+export default function ExploreScreen() {
+  const { locations, isLoading, error, refetch } = useLocations();
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const router = useRouter();
+  const {
+    tokens: { colors, spacing, components, map },
+  } = useAppTheme();
+
+  const region = useMemo(() => computeRegion(locations), [locations]);
+
+  const handleNavigate = (locationId: string) => {
+    router.push(`/location/${locationId}`);
+  };
+
+  const renderHeader = () => (
+    <View style={{ marginBottom: spacing.lg }}>
+      <ThemedText type="title" style={{ marginBottom: spacing.xs }}>
+        Explorează vibe-ul locațiilor
+      </ThemedText>
+      <ThemedText style={{ color: colors.mutedText, marginBottom: spacing.md }}>
+        Schimbă modul de vizualizare și descoperă unde îți bei următoarea cafea sau unde mănânci
+        ceva autentic.
+      </ThemedText>
+      <ViewModeToggle value={viewMode} onChange={setViewMode} />
+    </View>
+  );
+
+  const retryButton = (
+    <Pressable onPress={refetch} style={[styles.retryButton, { borderColor: colors.accent }]}>
+      <ThemedText type="defaultSemiBold" style={{ color: colors.accent }}>
+        Reîncarcă locațiile
+      </ThemedText>
+    </Pressable>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <ThemedView style={{ flex: 1, padding: spacing.lg }}>
+      {renderHeader()}
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      {error && (
+        <View style={{ marginBottom: spacing.md }}>
+          <ThemedText style={{ color: colors.warning }}>{error}</ThemedText>
+          {retryButton}
+        </View>
+      )}
+
+      {viewMode === 'list' ? (
+        <FlatList
+          data={locations}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <LocationCard location={item} onPress={handleNavigate} />}
+          contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}
+          ListEmptyComponent={!isLoading ? <EmptyState /> : null}
+          ListFooterComponent={isLoading ? <LoadingIndicator /> : null}
+          showsVerticalScrollIndicator={false}
+          refreshing={isLoading}
+          onRefresh={refetch}
+        />
+      ) : (
+        <View
+          style={[
+            styles.mapContainer,
+            {
+              borderRadius: components.cardRadius,
+              borderColor: colors.border,
+              backgroundColor: colors.elevated,
+            },
+          ]}>
+          {isLoading ? (
+            <LoadingIndicator />
+          ) : (
+            <MapView
+              key={`${region.latitude}-${region.longitude}`}
+              style={StyleSheet.absoluteFill}
+              initialRegion={region}
+              zoomTapEnabled={map.zoomTapEnabled}
+              zoomControlEnabled={false}>
+              <UrlTile urlTemplate={map.tileTemplate} maximumZ={19} />
+              {locations.map((location) => (
+                <Marker
+                  key={location.id}
+                  coordinate={{
+                    latitude: location.coordinates.lat,
+                    longitude: location.coordinates.long,
+                  }}
+                  pinColor={colors.mapMarker}
+                  title={location.name}
+                  description={location.shortDescription}
+                  onCalloutPress={() => handleNavigate(location.id)}
+                />
+              ))}
+            </MapView>
+          )}
+        </View>
+      )}
+    </ThemedView>
   );
 }
 
+function EmptyState() {
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: 64 }}>
+      <ThemedText type="subtitle">Nu am găsit locații</ThemedText>
+      <ThemedText>Încearcă să reîncarci pentru a vedea locațiile.</ThemedText>
+    </View>
+  );
+}
+
+const computeRegion = (locations: Location[]) => {
+  if (!locations.length) {
+    return {
+      latitude: 45.9432,
+      longitude: 24.9668,
+      latitudeDelta: 7,
+      longitudeDelta: 7,
+    };
+  }
+
+  const latitudes = locations.map((location) => location.coordinates.lat);
+  const longitudes = locations.map((location) => location.coordinates.long);
+
+  const minLat = Math.min(...latitudes);
+  const maxLat = Math.max(...latitudes);
+  const minLong = Math.min(...longitudes);
+  const maxLong = Math.max(...longitudes);
+
+  return {
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLong + maxLong) / 2,
+    latitudeDelta: (maxLat - minLat || 0.5) * 1.4,
+    longitudeDelta: (maxLong - minLong || 0.5) * 1.4,
+  };
+};
+
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  mapContainer: {
+    flex: 1,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  retryButton: {
+    marginTop: 12,
+    paddingVertical: 10,
     alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
   },
 });

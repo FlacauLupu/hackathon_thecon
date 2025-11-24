@@ -1,41 +1,197 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+export type ThemeName = 'light' | 'dark' | 'pastel';
 
-export const Colors = {
+type ColorTokens = {
+  background: string;
+  surface: string;
+  elevated: string;
+  text: string;
+  mutedText: string;
+  border: string;
+  accent: string;
+  accentSoft: string;
+  icon: string;
+  tabIconDefault: string;
+  tabIconSelected: string;
+  success: string;
+  warning: string;
+  mapMarker: string;
+  mapTint: string;
+};
+
+type TypographyTokens = {
+  fontFamily: string;
+  heading: number;
+  subheading: number;
+  body: number;
+  small: number;
+  weight: {
+    regular: '400';
+    medium: '500';
+    bold: '700';
+  };
+};
+
+type SpacingTokens = {
+  xs: number;
+  sm: number;
+  md: number;
+  lg: number;
+  xl: number;
+};
+
+export type ThemeTokens = {
+  name: ThemeName;
+  colors: ColorTokens;
+  spacing: SpacingTokens;
+  typography: TypographyTokens;
+  components: {
+    cardRadius: number;
+    buttonRadius: number;
+    borderWidth: number;
+  };
+  map: {
+    tileTemplate: string;
+    zoomTapEnabled: boolean;
+  };
+};
+
+const baseSpacing: SpacingTokens = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+};
+
+const baseTypography: TypographyTokens = {
+  fontFamily:
+    Platform.select({
+      ios: 'SF Pro Display',
+      android: 'Roboto',
+      default: 'System',
+    }) ?? 'System',
+  heading: 24,
+  subheading: 18,
+  body: 15,
+  small: 13,
+  weight: {
+    regular: '400',
+    medium: '500',
+    bold: '700',
+  },
+};
+
+export const themeConfig: Record<ThemeName, ThemeTokens> = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    name: 'light',
+    colors: {
+      background: '#F9FAFB',
+      surface: '#FFFFFF',
+      elevated: '#EEF2FF',
+      text: '#0F172A',
+      mutedText: '#64748B',
+      border: '#E2E8F0',
+      accent: '#4C6EF5',
+      accentSoft: '#A5B4FC',
+      icon: '#475569',
+      tabIconDefault: '#94A3B8',
+      tabIconSelected: '#4C6EF5',
+      success: '#22C55E',
+      warning: '#FBBF24',
+      mapMarker: '#2563EB',
+      mapTint: '#E0E7FF',
+    },
+    spacing: baseSpacing,
+    typography: baseTypography,
+    components: {
+      cardRadius: 18,
+      buttonRadius: 14,
+      borderWidth: 1,
+    },
+    map: {
+      tileTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      zoomTapEnabled: true,
+    },
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    name: 'dark',
+    colors: {
+      background: '#05070F',
+      surface: '#0F172A',
+      elevated: '#1E293B',
+      text: '#F8FAFC',
+      mutedText: '#94A3B8',
+      border: '#1E3A8A',
+      accent: '#22D3EE',
+      accentSoft: '#38BDF8',
+      icon: '#CBD5F5',
+      tabIconDefault: '#64748B',
+      tabIconSelected: '#22D3EE',
+      success: '#34D399',
+      warning: '#FACC15',
+      mapMarker: '#38BDF8',
+      mapTint: '#082F49',
+    },
+    spacing: baseSpacing,
+    typography: baseTypography,
+    components: {
+      cardRadius: 18,
+      buttonRadius: 14,
+      borderWidth: 1,
+    },
+    map: {
+      tileTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      zoomTapEnabled: true,
+    },
   },
+  pastel: {
+    name: 'pastel',
+    colors: {
+      background: '#F8F1FF',
+      surface: '#FFFFFF',
+      elevated: '#F1E8FF',
+      text: '#2D1B4E',
+      mutedText: '#6B4AA5',
+      border: '#E3D0FF',
+      accent: '#C084FC',
+      accentSoft: '#E9D5FF',
+      icon: '#8B5CF6',
+      tabIconDefault: '#C4B5FD',
+      tabIconSelected: '#A855F7',
+      success: '#A3E635',
+      warning: '#F472B6',
+      mapMarker: '#8B5CF6',
+      mapTint: '#F5E8FF',
+    },
+    spacing: baseSpacing,
+    typography: baseTypography,
+    components: {
+      cardRadius: 20,
+      buttonRadius: 16,
+      borderWidth: 1,
+    },
+    map: {
+      tileTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      zoomTapEnabled: false,
+    },
+  },
+};
+
+export const availableThemes: ThemeName[] = ['light', 'dark', 'pastel'];
+
+export const Colors: Record<ThemeName, ColorTokens> = {
+  light: themeConfig.light.colors,
+  dark: themeConfig.dark.colors,
+  pastel: themeConfig.pastel.colors,
 };
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {

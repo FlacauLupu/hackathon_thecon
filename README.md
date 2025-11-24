@@ -1,50 +1,56 @@
-# Welcome to your Expo app 👋
+# Aplicație Mobilă Turism
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicația Expo prezintă locații de interes (restaurante, cafenele, bistrouri) din România folosind datele furnizate în `locatii.json`. Utilizatorii pot alterna instant între listă și hartă OSM, pot deschide un ecran de detalii cu o descriere generată de AI și au butoane rapide către WhatsApp pentru rezervări.
 
-## Get started
+## Funcționalități principale
+- **Explore (tab implicit):** listă performantă (`FlatList`) cu carduri ilustrate, rating, adresă și CTA WhatsApp + modul Hartă (`react-native-maps` + `UrlTile` pentru OpenStreetMap) cu markere interactive.
+- **Detalii locație:** afișează informațiile locației, ratingul și un text „vibe” generat de serviciul AI (`generateLocationVibe`). Se afișează un loader dedicat cât timp se așteaptă răspunsul.
+- **Profil (tab secundar):** permite alegerea temei (Light, Dark, Pastel Mov) și oferă statistici + feedback rapid prin WhatsApp.
+- **Teme dinamice:** Context global cu design tokens (culori, spacing, radii) pentru trei teme. Navigația și componentele ThemedText/View se actualizează instant.
+- **Management date:** `LocationsProvider` încarcă și memorează locațiile din JSON pentru a fi reutilizate în toate ecranele.
 
-1. Install dependencies
+## Pornire rapidă
+```bash
+npm install
+npx expo start
+```
+Aplicația rulează în Expo Go, emulator Android/iOS sau web. Pentru build-uri dedicate folosiți `eas build` (vezi documentația Expo).
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Configurarea serviciului AI
+Funcția `generateLocationVibe` folosește modelul OpenAI (implicit `gpt-4o-mini`). Pentru rezultate reale seteză variabilele de mediu (în `app.json` > `extra` sau `app.config.js`). Prefixul `EXPO_PUBLIC_` permite expunerea valorilor către client.
 
 ```bash
-npm run reset-project
+EXPO_PUBLIC_OPENAI_API_KEY="cheia_voastră"
+EXPO_PUBLIC_OPENAI_BASE_URL="https://api.openai.com/v1" # opțional
+EXPO_PUBLIC_OPENAI_MODEL="gpt-4o-mini" # opțional
+```
+În lipsa cheii se folosește un fallback local astfel încât aplicația să rămână demonstrabilă.
+
+## Structură relevantă
+```
+app/
+  (tabs)/index.tsx        # Ecran Explore (listă + hartă)
+  (tabs)/profile.tsx      # Ecran Profil cu setări de temă
+  location/[id].tsx       # Ecran detalii cu descriere AI
+components/
+  location-card.tsx
+  whatsapp-button.tsx
+  view-mode-toggle.tsx
+contexts/
+  locations-context.tsx
+  theme-context.tsx
+services/
+  location-service.ts     # citește locatii.json
+  ai-service.ts           # integrare OpenAI (fallback inclus)
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Scripturi utile
+- `npm run lint` – verifică regulile ESLint Expo.
+- `npm run android` / `npm run ios` – pornește Expo pe emulator dedicat.
 
-## Learn more
+## Ce urmează (idei din documentație)
+- Filtre/ căutare în ecranul Explore.
+- Autentificare și profiluri reale de utilizator.
+- Ecrane suplimentare (chatbot AI, recenzii, favourite) + trimitere evenimente analytics.
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Documentația PDF „Aplicație Mobilă Turism (React Native + Expo + AI)” din repo rămâne referința completă pentru roadmap și best practises.
