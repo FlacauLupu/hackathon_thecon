@@ -9,9 +9,11 @@ import { WhatsAppButton } from '@/components/whatsapp-button';
 type Props = {
   location: Location;
   onPress: (locationId: string) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (locationId: string) => void;
 };
 
-export function LocationCard({ location, onPress }: Props) {
+export function LocationCard({ location, onPress, isFavorite = false, onToggleFavorite }: Props) {
   const {
     tokens: { colors, components, spacing },
   } = useAppTheme();
@@ -28,16 +30,37 @@ export function LocationCard({ location, onPress }: Props) {
           padding: spacing.md,
         },
       ]}>
-      <Image
-        source={{ uri: location.imageUrl }}
-        style={[
-          styles.image,
-          {
-            borderRadius: components.cardRadius,
-            marginBottom: spacing.md,
-          },
-        ]}
-      />
+      <View>
+        <Image
+          source={{ uri: location.imageUrl }}
+          style={[
+            styles.image,
+            {
+              borderRadius: components.cardRadius,
+              marginBottom: spacing.md,
+            },
+          ]}
+        />
+        {onToggleFavorite && (
+          <Pressable
+            hitSlop={12}
+            style={[
+              styles.favoriteButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderRadius: 999,
+              },
+            ]}
+            onPress={() => onToggleFavorite(location.id)}>
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={20}
+              color={isFavorite ? colors.warning : colors.icon}
+            />
+          </Pressable>
+        )}
+      </View>
       <View style={styles.content}>
         <ThemedText type="subtitle" style={{ marginBottom: spacing.xs }}>
           {location.name}
@@ -95,6 +118,13 @@ const styles = StyleSheet.create({
   rating: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 6,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 });
 

@@ -1,26 +1,30 @@
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import MapView, { Marker, UrlTile } from 'react-native-maps';
 
-import { LocationCard } from '@/components/location-card';
 import { LoadingIndicator } from '@/components/loading-indicator';
+import { LocationCard } from '@/components/location-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ViewModeToggle } from '@/components/view-mode-toggle';
+import { useAuth } from '@/contexts/auth-context';
 import { useAppTheme } from '@/contexts/theme-context';
+import { useUserData } from '@/contexts/user-data-context';
 import { useLocations } from '@/hooks/use-locations';
 import { Location } from '@/types/location';
 
 type ViewMode = 'list' | 'map';
 
 export default function ExploreScreen() {
+  const { user, isReady } = useAuth();
   const { locations, isLoading, error, refetch } = useLocations();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const router = useRouter();
   const {
     tokens: { colors, spacing, components, map },
   } = useAppTheme();
+  const { favoriteIds, toggleFavorite } = useUserData();
 
   const region = useMemo(() => computeRegion(locations), [locations]);
 
@@ -49,6 +53,18 @@ export default function ExploreScreen() {
     </Pressable>
   );
 
+  if (!isReady) {
+    return (
+      <ThemedView style={styles.loadingScreen}>
+        <LoadingIndicator />
+      </ThemedView>
+    );
+  }
+
+  if (!user) {
+    return <Redirect href="/auth" />;
+  }
+
   return (
     <ThemedView style={{ flex: 1, padding: spacing.lg }}>
       {renderHeader()}
@@ -64,7 +80,14 @@ export default function ExploreScreen() {
         <FlatList
           data={locations}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <LocationCard location={item} onPress={handleNavigate} />}
+          renderItem={({ item }) => (
+            <LocationCard
+              location={item}
+              onPress={handleNavigate}
+              isFavorite={favoriteIds.includes(item.id)}
+              onToggleFavorite={toggleFavorite}
+            />
+          )}
           contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}
           ListEmptyComponent={!isLoading ? <EmptyState /> : null}
           ListFooterComponent={isLoading ? <LoadingIndicator /> : null}
@@ -149,6 +172,10 @@ const computeRegion = (locations: Location[]) => {
 };
 
 const styles = StyleSheet.create({
+  loadingScreen: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   mapContainer: {
     flex: 1,
     overflow: 'hidden',

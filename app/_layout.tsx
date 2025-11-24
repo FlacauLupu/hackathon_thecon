@@ -4,8 +4,10 @@ import { StatusBar } from 'expo-status-bar';
 import { PropsWithChildren, useMemo } from 'react';
 import 'react-native-reanimated';
 
+import { AuthProvider } from '@/contexts/auth-context';
 import { LocationsProvider } from '@/contexts/locations-context';
 import { ThemeProvider, useAppTheme } from '@/contexts/theme-context';
+import { UserDataProvider } from '@/contexts/user-data-context';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -39,9 +41,10 @@ function AppNavigatorShell() {
 
   return (
     <>
-      <Stack>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="auth" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="location/[id]" options={{ title: 'Detalii locație' }} />
+        <Stack.Screen name="location/[id]" options={{ title: 'Detalii locație', headerShown: true }} />
       </Stack>
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
     </>
@@ -51,11 +54,15 @@ function AppNavigatorShell() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <NavigationTheme>
-        <LocationsProvider>
-          <AppNavigatorShell />
-        </LocationsProvider>
-      </NavigationTheme>
+      <AuthProvider>
+        <NavigationTheme>
+          <LocationsProvider>
+            <UserDataProvider>
+              <AppNavigatorShell />
+            </UserDataProvider>
+          </LocationsProvider>
+        </NavigationTheme>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

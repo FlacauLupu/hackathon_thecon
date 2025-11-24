@@ -1,23 +1,25 @@
 # Aplicație Mobilă Turism
 
-Aplicația Expo prezintă locații de interes (restaurante, cafenele, bistrouri) din România folosind datele furnizate în `locatii.json`. Utilizatorii pot alterna instant între listă și hartă OSM, pot deschide un ecran de detalii cu o descriere generată de AI și au butoane rapide către WhatsApp pentru rezervări.
+Aplicația Expo prezintă locații de interes (restaurante, cafenele, bistrouri) din România folosind datele furnizate în `locatii.json`. Utilizatorii pot alterna între modurile Listă și Hartă, pot salva locații favorite, își pot urmări istoricul vizitelor și pot adăuga recenzii cu vibe personal. Toate datele de utilizator sunt memorate local în SQLite.
 
 ## Funcționalități principale
-- **Explore (tab implicit):** listă performantă (`FlatList`) cu carduri ilustrate, rating, adresă și CTA WhatsApp + modul Hartă (`react-native-maps` + `UrlTile` pentru OpenStreetMap) cu markere interactive.
-- **Detalii locație:** afișează informațiile locației, ratingul și un text „vibe” generat de serviciul AI (`generateLocationVibe`). Se afișează un loader dedicat cât timp se așteaptă răspunsul.
-- **Profil (tab secundar):** permite alegerea temei (Light, Dark, Pastel Mov) și oferă statistici + feedback rapid prin WhatsApp.
-- **Teme dinamice:** Context global cu design tokens (culori, spacing, radii) pentru trei teme. Navigația și componentele ThemedText/View se actualizează instant.
-- **Management date:** `LocationsProvider` încarcă și memorează locațiile din JSON pentru a fi reutilizate în toate ecranele.
+- **Autentificare locală (SQLite):** formular de login/register cu parole hash-uite (`expo-crypto`). Utilizatorul rămâne logat prin sesiunea salvată în tabela `session`.
+- **Explore:** listă performantă (`FlatList`) cu carduri ilustrate, rating, adresă, CTA WhatsApp și comutare rapidă în modul Hartă (`react-native-maps` + `UrlTile` pentru OpenStreetMap). Favoritele sunt marcate și pot fi schimbate direct din card.
+- **Detalii locație:** afișează informațiile locației, descriere AI (`generateLocationVibe`), butoane de favorite/istoric și formular de recenzie (rating + comentariu). Vizitele sunt salvate automat în momentul deschiderii ecranului.
+- **Profil:** dashboard cu statistici (favorite, vizite, recenzii), listă cu ultimele locații vizitate, recenziile mele, selecție temă (Light/Dark/Pastel) și shortcut WhatsApp pentru feedback.
+- **Teme dinamice:** context cu design tokens pentru cele trei teme; navigația și componentele ThemedText/View se actualizează instant.
 
 ## Pornire rapidă
 ```bash
 npm install
 npx expo start
 ```
-Aplicația rulează în Expo Go, emulator Android/iOS sau web. Pentru build-uri dedicate folosiți `eas build` (vezi documentația Expo).
+1. Pornește aplicația în Expo Go / emulator.
+2. Creează-ți un cont din ecranul de autentificare (numai email și parolă, datele rămân local).
+3. Explorează locațiile, salvează favorite și lasă recenzii – datele tale vor fi persistate în baza SQLite (`services/database.ts`).
 
 ## Configurarea serviciului AI
-Funcția `generateLocationVibe` folosește modelul OpenAI (implicit `gpt-4o-mini`). Pentru rezultate reale seteză variabilele de mediu (în `app.json` > `extra` sau `app.config.js`). Prefixul `EXPO_PUBLIC_` permite expunerea valorilor către client.
+Funcția `generateLocationVibe` folosește modelul OpenAI (implicit `gpt-4o-mini`). Pentru rezultate reale setează variabilele de mediu (în `app.json` > `extra` sau `app.config.js`). Prefixul `EXPO_PUBLIC_` permite expunerea valorilor către client.
 
 ```bash
 EXPO_PUBLIC_OPENAI_API_KEY="cheia_voastră"
@@ -29,28 +31,28 @@ EXPO_PUBLIC_OPENAI_MODEL="gpt-4o-mini" # opțional
 ## Structură relevantă
 ```
 app/
-  (tabs)/index.tsx        # Ecran Explore (listă + hartă)
-  (tabs)/profile.tsx      # Ecran Profil cu setări de temă
-  location/[id].tsx       # Ecran detalii cu descriere AI
+  auth.tsx                 # Login/Register screen
+  (tabs)/index.tsx         # Explore (listă + hartă)
+  (tabs)/profile.tsx       # Profil + statistici
+  location/[id].tsx        # Detalii, favorite, recenzii
 components/
-  location-card.tsx
-  whatsapp-button.tsx
-  view-mode-toggle.tsx
+  location-card.tsx, whatsapp-button.tsx, view-mode-toggle.tsx, loading-indicator.tsx
 contexts/
-  locations-context.tsx
-  theme-context.tsx
+  auth-context.tsx, user-data-context.tsx, locations-context.tsx, theme-context.tsx
 services/
-  location-service.ts     # citește locatii.json
-  ai-service.ts           # integrare OpenAI (fallback inclus)
+  database.ts              # Setup SQLite + tabele (users, favorites, visits, reviews, session)
+  auth-service.ts          # Înregistrare / login / sesiune
+  user-data-service.ts     # Favorite, istorice, recenzii
+  location-service.ts      # Citește `locatii.json`
 ```
 
 ## Scripturi utile
 - `npm run lint` – verifică regulile ESLint Expo.
 - `npm run android` / `npm run ios` – pornește Expo pe emulator dedicat.
 
-## Ce urmează (idei din documentație)
-- Filtre/ căutare în ecranul Explore.
-- Autentificare și profiluri reale de utilizator.
-- Ecrane suplimentare (chatbot AI, recenzii, favourite) + trimitere evenimente analytics.
+## Idei viitoare
+- Căutare + filtre avansate în ecranul Explore.
+- Sincronizare cloud / backend real pentru listele personale.
+- Notificări (ex. remindere pentru locațiile salvate) + analytics.
 
 Documentația PDF „Aplicație Mobilă Turism (React Native + Expo + AI)” din repo rămâne referința completă pentru roadmap și best practises.
