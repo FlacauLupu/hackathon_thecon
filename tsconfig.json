@@ -2,10 +2,6 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-<<<<<<< HEAD
-    "resolveJsonModule": true,
-=======
->>>>>>> dd50818629a45c74d84332579bbaa8d46d00a1df
     "paths": {
       "@/*": [
         "./*"
