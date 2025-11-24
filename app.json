@@ -1,11 +1,20 @@
 {
   "expo": {
+<<<<<<< HEAD
     "name": "HackathonThecon",
     "slug": "HackathonThecon",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "hackathonthecon",
+=======
+    "name": "Foodio",
+    "slug": "Foodio",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "foodio",
+>>>>>>> dd50818629a45c74d84332579bbaa8d46d00a1df
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -38,8 +47,12 @@
             "backgroundColor": "#000000"
           }
         }
+<<<<<<< HEAD
       ],
       "expo-sqlite"
+=======
+      ]
+>>>>>>> dd50818629a45c74d84332579bbaa8d46d00a1df
     ],
     "experiments": {
       "typedRoutes": true,
