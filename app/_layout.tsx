@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -66,10 +65,4 @@ export default function RootLayout() {
       </AuthProvider>
     </ThemeProvider>
   );
-=======
-import { Stack } from "expo-router";
-
-export default function RootLayout() {
-  return <Stack />;
->>>>>>> dd50818629a45c74d84332579bbaa8d46d00a1df
 }
