@@ -1,21 +1,17 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { useAppTheme } from '@/contexts/theme-context';
 import { ThemedText } from '@/components/themed-text';
+import { useAppTheme } from '@/contexts/theme-context';
 
-type ViewMode = 'list' | 'map';
+type ViewMode = 'list' | 'map' | 'assistant';
 
 type Props = {
   value: ViewMode;
+  options: { label: string; value: ViewMode }[];
   onChange: (mode: ViewMode) => void;
 };
 
-const OPTIONS: { label: string; value: ViewMode }[] = [
-  { label: 'Listă', value: 'list' },
-  { label: 'Hartă', value: 'map' },
-];
-
-export function ViewModeToggle({ value, onChange }: Props) {
+export function ViewModeToggle({ value, onChange, options }: Props) {
   const {
     tokens: { colors, spacing, components },
   } = useAppTheme();
@@ -30,7 +26,7 @@ export function ViewModeToggle({ value, onChange }: Props) {
           padding: spacing.xs,
         },
       ]}>
-      {OPTIONS.map((option) => {
+      {options.map((option) => {
         const isActive = option.value === value;
         return (
           <Pressable

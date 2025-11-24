@@ -8,24 +8,10 @@ import { ThemedView } from '@/components/themed-view';
 import { WhatsAppButton } from '@/components/whatsapp-button';
 import { availableThemes } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
+import { useTranslation } from '@/contexts/language-context';
 import { useAppTheme } from '@/contexts/theme-context';
 import { useLocations } from '@/hooks/use-locations';
 import { useUserData } from '@/contexts/user-data-context';
-
-const THEME_LABELS: Record<string, { title: string; description: string }> = {
-  light: {
-    title: 'Light',
-    description: 'Accent pe claritate și fotografii luminoase.',
-  },
-  dark: {
-    title: 'Dark',
-    description: 'Contrast ridicat ideal pentru sesiuni nocturne.',
-  },
-  pastel: {
-    title: 'Pastel Mov',
-    description: 'Vibe creativ inspirat din moodboard-urile de hackathon.',
-  },
-};
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -33,6 +19,7 @@ export default function ProfileScreen() {
   const { theme, setTheme, tokens } = useAppTheme();
   const { locations } = useLocations();
   const { favoriteIds, visits, reviews } = useUserData();
+  const { t, language, setLanguage, availableLanguages } = useTranslation();
 
   const isNotNull = <T,>(value: T | null | undefined): value is T => value != null;
 
@@ -80,12 +67,12 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <ThemedText type="title" style={{ marginBottom: tokens.spacing.xs }}>
-              Salut, {user?.name ?? 'Explorator'} 👋
+              {t('profile.greeting', { name: user?.name ?? t('profile.explorer') })}
             </ThemedText>
             <ThemedText style={{ color: tokens.colors.mutedText }}>{user?.email}</ThemedText>
           </View>
           <Pressable style={styles.logoutButton} onPress={logout}>
-            <ThemedText type="defaultSemiBold">Ieși</ThemedText>
+            <ThemedText type="defaultSemiBold">{t('profile.logout')}</ThemedText>
           </Pressable>
         </View>
 
@@ -98,23 +85,26 @@ export default function ProfileScreen() {
               backgroundColor: tokens.colors.surface,
             },
           ]}>
-          <ThemedText type="subtitle">Statistici rapide</ThemedText>
+          <ThemedText type="subtitle">{t('profile.statsTitle')}</ThemedText>
           <View style={styles.statRow}>
-            <ThemedText type="defaultSemiBold">Locații favorite</ThemedText>
+            <ThemedText type="defaultSemiBold">{t('profile.stats.favorites')}</ThemedText>
             <ThemedText type="title">{favoriteIds.length}</ThemedText>
           </View>
           <View style={styles.statRow}>
-            <ThemedText type="defaultSemiBold">Vizite înregistrate</ThemedText>
+            <ThemedText type="defaultSemiBold">{t('profile.stats.visits')}</ThemedText>
             <ThemedText type="title">{visits.length}</ThemedText>
           </View>
           <View style={styles.statRow}>
-            <ThemedText type="defaultSemiBold">Recenzii</ThemedText>
+            <ThemedText type="defaultSemiBold">{t('profile.stats.reviews')}</ThemedText>
             <ThemedText type="title">{reviews.length}</ThemedText>
           </View>
         </View>
 
         <View style={{ gap: tokens.spacing.sm }}>
-          <ThemedText type="subtitle">Teme vizuale</ThemedText>
+          <ThemedText type="subtitle">{t('profile.themeTitle')}</ThemedText>
+          <ThemedText style={{ color: tokens.colors.mutedText }}>
+            {t('profile.themeSubtitle')}
+          </ThemedText>
           {availableThemes.map((name) => (
             <Pressable
               key={name}
@@ -127,9 +117,11 @@ export default function ProfileScreen() {
                 },
               ]}
               onPress={() => setTheme(name)}>
-              <ThemedText type="defaultSemiBold">{THEME_LABELS[name].title}</ThemedText>
+              <ThemedText type="defaultSemiBold">
+                {t(`profile.theme.${name}.title` as const)}
+              </ThemedText>
               <ThemedText style={{ color: tokens.colors.mutedText }}>
-                {THEME_LABELS[name].description}
+                {t(`profile.theme.${name}.description` as const)}
               </ThemedText>
               <ThemedText
                 type="defaultSemiBold"
@@ -137,7 +129,32 @@ export default function ProfileScreen() {
                   color: name === theme ? tokens.colors.accent : tokens.colors.mutedText,
                   marginTop: tokens.spacing.xs,
                 }}>
-                {name === theme ? 'Tema curentă' : 'Tap pentru a activa'}
+                {name === theme ? t('profile.theme.statusActive') : t('profile.theme.statusInactive')}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={{ gap: tokens.spacing.sm }}>
+          <ThemedText type="subtitle">{t('profile.languageTitle')}</ThemedText>
+          <ThemedText style={{ color: tokens.colors.mutedText }}>
+            {t('profile.languageSubtitle')}
+          </ThemedText>
+          {availableLanguages.map(({ code, label }) => (
+            <Pressable
+              key={code}
+              style={[
+                styles.card,
+                {
+                  borderColor: code === language ? tokens.colors.accent : tokens.colors.border,
+                  backgroundColor: code === language ? tokens.colors.elevated : tokens.colors.surface,
+                  borderRadius: tokens.components.cardRadius,
+                },
+              ]}
+              onPress={() => setLanguage(code)}>
+              <ThemedText type="defaultSemiBold">{label}</ThemedText>
+              <ThemedText style={{ color: tokens.colors.mutedText }}>
+                {code === language ? t('profile.languageActive') : t('profile.languageInactive')}
               </ThemedText>
             </Pressable>
           ))}
@@ -152,10 +169,10 @@ export default function ProfileScreen() {
               backgroundColor: tokens.colors.surface,
             },
           ]}>
-          <ThemedText type="subtitle">Locații favorite</ThemedText>
+          <ThemedText type="subtitle">{t('profile.favoritesTitle')}</ThemedText>
           {favoritesDetailed.length === 0 ? (
             <ThemedText style={{ color: tokens.colors.mutedText }}>
-              Încă nu ai salvat nimic. Deschide tab-ul Explore și apasă pe inimioară.
+              {t('profile.favoritesEmpty')}
             </ThemedText>
           ) : (
             favoritesDetailed.map((location) => (
@@ -182,10 +199,10 @@ export default function ProfileScreen() {
               backgroundColor: tokens.colors.surface,
             },
           ]}>
-          <ThemedText type="subtitle">Ultimele vizite</ThemedText>
+          <ThemedText type="subtitle">{t('profile.visitsTitle')}</ThemedText>
           {visitedDetailed.length === 0 ? (
             <ThemedText style={{ color: tokens.colors.mutedText }}>
-              Când deschizi o locație, o vom adăuga aici automat.
+              {t('profile.visitsEmpty')}
             </ThemedText>
           ) : (
             visitedDetailed.map((visit) => (
@@ -208,10 +225,10 @@ export default function ProfileScreen() {
               backgroundColor: tokens.colors.surface,
             },
           ]}>
-          <ThemedText type="subtitle">Recenziile mele</ThemedText>
+          <ThemedText type="subtitle">{t('profile.reviewsTitle')}</ThemedText>
           {reviews.length === 0 ? (
             <ThemedText style={{ color: tokens.colors.mutedText }}>
-              Scrie o recenzie din ecranul unei locații și o vezi aici.
+              {t('profile.reviewsEmpty')}
             </ThemedText>
           ) : (
             reviews.slice(0, 3).map((review) => {
@@ -239,12 +256,18 @@ export default function ProfileScreen() {
             },
           ]}>
           <ThemedText type="subtitle" style={{ marginBottom: tokens.spacing.sm }}>
-            Feedback rapid
+            {t('profile.feedbackTitle')}
           </ThemedText>
           <ThemedText style={{ color: tokens.colors.mutedText, marginBottom: tokens.spacing.sm }}>
-            Trimite pe WhatsApp întrebări sau resurse extra pentru echipa de hackathon.
+            {t('profile.feedbackSubtitle')}
           </ThemedText>
-          <WhatsAppButton message="Salut! Uite feedback-ul meu pentru aplicația de turism." />
+          <WhatsAppButton
+            message={
+              language === 'en'
+                ? 'Hi! Here is my feedback for the tourism app.'
+                : 'Salut! Uite feedback-ul meu pentru aplicația de turism.'
+            }
+          />
         </View>
       </ScrollView>
     </ThemedView>

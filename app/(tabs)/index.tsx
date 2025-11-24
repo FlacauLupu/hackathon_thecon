@@ -1,7 +1,7 @@
 import * as ExpoLocation from 'expo-location';
 import { Redirect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import MapView, { Callout, Marker } from 'react-native-maps';
 
 import { AIRecommender } from '@/components/ai-recommender';
@@ -11,12 +11,15 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ViewModeToggle } from '@/components/view-mode-toggle';
 import { useAuth } from '@/contexts/auth-context';
+import { useTranslation } from '@/contexts/language-context';
 import { useAppTheme } from '@/contexts/theme-context';
 import { useUserData } from '@/contexts/user-data-context';
 import { useLocations } from '@/hooks/use-locations';
+import { listAllReviews } from '@/services/user-data-service';
 import { Location } from '@/types/location';
+import { Review } from '@/types/review';
 
-type ViewMode = 'list' | 'map';
+type ViewMode = 'list' | 'map' | 'assistant';
 
 export default function ExploreScreen() {
   const { user, isReady } = useAuth();
@@ -26,11 +29,14 @@ export default function ExploreScreen() {
   const [userLocation, setUserLocation] = useState<{ lat: number; long: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'unknown' | 'granted' | 'denied'>('unknown');
   const [isRequestingLocation, setIsRequestingLocation] = useState(false);
+  const [reviewsByLocation, setReviewsByLocation] = useState<Record<string, Review[]>>({});
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const router = useRouter();
   const {
     tokens: { colors, spacing, components },
   } = useAppTheme();
   const { favoriteIds, toggleFavorite } = useUserData();
+  const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const handleNavigate = (locationId: string) => {
@@ -62,6 +68,42 @@ export default function ExploreScreen() {
   useEffect(() => {
     requestLocationAccess();
   }, [requestLocationAccess]);
+
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
+
+    let isMounted = true;
+    const loadReviews = async () => {
+      try {
+        setIsLoadingReviews(true);
+        const allReviews = await listAllReviews();
+        if (!isMounted) {
+          return;
+        }
+        const grouped = allReviews.reduce<Record<string, Review[]>>((acc, review) => {
+          if (!acc[review.locationId]) {
+            acc[review.locationId] = [];
+          }
+          acc[review.locationId].push(review);
+          return acc;
+        }, {});
+        setReviewsByLocation(grouped);
+      } catch (loadError) {
+        console.warn('Failed to load reviews for assistant', loadError);
+      } finally {
+        if (isMounted) {
+          setIsLoadingReviews(false);
+        }
+      }
+    };
+
+    loadReviews();
+    return () => {
+      isMounted = false;
+    };
+  }, [isReady]);
 
   const region = useMemo(() => computeRegion(locations, userLocation), [locations, userLocation]);
 
@@ -110,18 +152,25 @@ export default function ExploreScreen() {
     extrapolate: 'clamp',
   });
 
+  const viewOptions = useMemo(
+    () => [
+      { label: t('view.list'), value: 'list' as ViewMode },
+      { label: t('view.map'), value: 'map' as ViewMode },
+      { label: t('view.assistant'), value: 'assistant' as ViewMode },
+    ],
+    [t],
+  );
+
   const heroContent = (
     <View style={{ gap: spacing.xs }}>
-      <ThemedText type="title">Explorează vibe-ul locațiilor</ThemedText>
-      <ThemedText style={{ color: colors.mutedText }}>
-        Schimbă modul de vizualizare și descoperă unde îți bei următoarea cafea sau unde mănânci ceva autentic.
-      </ThemedText>
+      <ThemedText type="title">{t('explore.heroTitle')}</ThemedText>
+      <ThemedText style={{ color: colors.mutedText }}>{t('explore.heroSubtitle')}</ThemedText>
     </View>
   );
 
   const controls = (
     <View style={[styles.controls, { gap: spacing.sm }]}>
-      <ViewModeToggle value={viewMode} onChange={setViewMode} />
+      <ViewModeToggle value={viewMode} onChange={setViewMode} options={viewOptions} />
       <RatingFilter value={ratingFilter} onChange={setRatingFilter} />
     </View>
   );
@@ -138,14 +187,14 @@ export default function ExploreScreen() {
           },
         ]}>
         <ThemedText type="defaultSemiBold" style={{ color: colors.accent }}>
-          Activează locația pentru a vedea ce e aproape
+          {t('explore.activateLocation')}
         </ThemedText>
       </Pressable>
     ) : null;
 
   const locatingHint =
     isRequestingLocation && locationStatus !== 'denied' ? (
-      <ThemedText style={{ color: colors.mutedText }}>Determinăm locația ta...</ThemedText>
+      <ThemedText style={{ color: colors.mutedText }}>{t('explore.locating')}</ThemedText>
     ) : null;
 
   const renderClosestSection = () => {
@@ -164,10 +213,10 @@ export default function ExploreScreen() {
           },
         ]}>
         <ThemedText type="subtitle" style={{ marginBottom: spacing.xs }}>
-          Aproape de tine
+          {t('explore.closestTitle')}
         </ThemedText>
         <ThemedText style={{ color: colors.mutedText, marginBottom: spacing.md }}>
-          Iată cele mai apropiate locuri pe baza poziției tale curente.
+          {t('explore.closestSubtitle')}
         </ThemedText>
         <View style={{ gap: spacing.md }}>
           {closestLocations.map((location) => (
@@ -200,7 +249,7 @@ export default function ExploreScreen() {
   const retryButton = (
     <Pressable onPress={refetch} style={[styles.retryButton, { borderColor: colors.accent }]}>
       <ThemedText type="defaultSemiBold" style={{ color: colors.accent }}>
-        Reîncarcă locațiile
+        {t('explore.retry')}
       </ThemedText>
     </Pressable>
   );
@@ -223,113 +272,147 @@ export default function ExploreScreen() {
     </View>
   );
 
-  return (
-    <ThemedView style={{ flex: 1, padding: spacing.lg }}>
-      {viewMode === 'list' ? (
-        <Animated.FlatList
-          data={furtherLocations}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <LocationCard
-              location={item}
-              onPress={handleNavigate}
-              isFavorite={favoriteIds.includes(item.id)}
-              onToggleFavorite={toggleFavorite}
-              distanceKm={distanceByLocationId.get(item.id)}
-            />
-          )}
-          contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}
-          ListEmptyComponent={!isLoading ? <EmptyState /> : null}
-          ListHeaderComponent={() => listHeader}
-          ListFooterComponent={() => (
-            <View style={{ gap: spacing.lg }}>
-              {isLoading ? <LoadingIndicator /> : null}
-              {!!filteredLocations.length && <AIRecommender locations={filteredLocations} />}
-            </View>
-          )}
-          showsVerticalScrollIndicator={false}
-          refreshing={isLoading}
-          onRefresh={refetch}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true },
-          )}
-          scrollEventThrottle={16}
-        />
-      ) : (
-        <View style={{ flex: 1, gap: spacing.lg }}>
-          <View style={{ gap: spacing.lg }}>
-            {heroContent}
-            {controls}
-            {locationHelper}
-            {locatingHint}
-            {error && (
-              <View>
-                <ThemedText style={{ color: colors.warning }}>{error}</ThemedText>
-                {retryButton}
-              </View>
-            )}
-          </View>
-          <View
-            style={[
-              styles.mapContainer,
-              {
-                borderRadius: components.cardRadius,
-                borderColor: colors.border,
-                backgroundColor: colors.elevated,
-              },
-            ]}>
-            {isLoading ? (
-              <LoadingIndicator />
-            ) : (
-              <MapView
-                key={`${region.latitude}-${region.longitude}`}
-                style={StyleSheet.absoluteFill}
-                initialRegion={region}
-                zoomTapEnabled
-                zoomControlEnabled={false}>
-                {filteredLocations.map((location) => (
-                  <Marker
-                    key={location.id}
-                    coordinate={{
-                      latitude: location.coordinates.lat,
-                      longitude: location.coordinates.long,
-                    }}
-                    pinColor={colors.mapMarker}>
-                    <Callout onPress={() => handleNavigate(location.id)}>
-                      <View
-                        style={[
-                          styles.callout,
-                          {
-                            borderColor: colors.border,
-                            backgroundColor: colors.surface,
-                          },
-                        ]}>
-                        <ThemedText type="defaultSemiBold">{location.name}</ThemedText>
-                        <ThemedText style={{ color: colors.mutedText }}>{location.address}</ThemedText>
-                        <ThemedText>{location.rating.toFixed(1)} ⭐</ThemedText>
-                        <ThemedText type="link" style={{ color: colors.accent, marginTop: spacing.xs }}>
-                          Vezi detalii
-                        </ThemedText>
-                      </View>
-                    </Callout>
-                  </Marker>
-                ))}
-              </MapView>
-            )}
-          </View>
-          {!!filteredLocations.length && <AIRecommender locations={filteredLocations} />}
+  const mapHeader = (
+    <View style={{ gap: spacing.lg }}>
+      {heroContent}
+      {controls}
+      {locationHelper}
+      {locatingHint}
+      {error && (
+        <View>
+          <ThemedText style={{ color: colors.warning }}>{error}</ThemedText>
+          {retryButton}
         </View>
       )}
+    </View>
+  );
+
+  let content: JSX.Element;
+
+  if (viewMode === 'list') {
+    content = (
+      <Animated.FlatList
+        data={furtherLocations}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <LocationCard
+            location={item}
+            onPress={handleNavigate}
+            isFavorite={favoriteIds.includes(item.id)}
+            onToggleFavorite={toggleFavorite}
+            distanceKm={distanceByLocationId.get(item.id)}
+          />
+        )}
+        contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}
+        ListEmptyComponent={!isLoading ? <EmptyState /> : null}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={isLoading ? <LoadingIndicator /> : null}
+        showsVerticalScrollIndicator={false}
+        refreshing={isLoading}
+        onRefresh={refetch}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: true,
+        })}
+        scrollEventThrottle={16}
+      />
+    );
+  } else if (viewMode === 'map') {
+    content = (
+      <View style={{ flex: 1, gap: spacing.lg }}>
+        {mapHeader}
+        <View
+          style={[
+            styles.mapContainer,
+            {
+              borderRadius: components.cardRadius,
+              borderColor: colors.border,
+              backgroundColor: colors.elevated,
+            },
+          ]}>
+          {isLoading ? (
+            <LoadingIndicator />
+          ) : (
+            <MapView
+              key={`${region.latitude}-${region.longitude}`}
+              style={StyleSheet.absoluteFill}
+              initialRegion={region}
+              zoomTapEnabled
+              zoomControlEnabled={false}>
+              {filteredLocations.map((location) => (
+                <Marker
+                  key={location.id}
+                  coordinate={{
+                    latitude: location.coordinates.lat,
+                    longitude: location.coordinates.long,
+                  }}
+                  pinColor={colors.mapMarker}>
+                  <Callout onPress={() => handleNavigate(location.id)}>
+                    <View
+                      style={[
+                        styles.callout,
+                        {
+                          borderColor: colors.border,
+                          backgroundColor: colors.surface,
+                        },
+                      ]}>
+                      <ThemedText type="defaultSemiBold">{location.name}</ThemedText>
+                      <ThemedText style={{ color: colors.mutedText }}>{location.address}</ThemedText>
+                      <ThemedText>{location.rating.toFixed(1)} ⭐</ThemedText>
+                      <ThemedText type="link" style={{ color: colors.accent, marginTop: spacing.xs }}>
+                        {t('explore.calloutDetails')}
+                      </ThemedText>
+                    </View>
+                  </Callout>
+                </Marker>
+              ))}
+            </MapView>
+          )}
+        </View>
+      </View>
+    );
+  } else {
+    content = (
+      <ScrollView
+        contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={false}>
+        {heroContent}
+        {controls}
+        {locationHelper}
+        {locatingHint}
+        {error && (
+          <View>
+            <ThemedText style={{ color: colors.warning }}>{error}</ThemedText>
+            {retryButton}
+          </View>
+        )}
+        {isLoadingReviews ? (
+          <LoadingIndicator size="small" />
+        ) : filteredLocations.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <AIRecommender
+            locations={filteredLocations}
+            reviewsByLocation={reviewsByLocation}
+            userLocation={userLocation}
+          />
+        )}
+      </ScrollView>
+    );
+  }
+
+  return (
+    <ThemedView style={{ flex: 1, padding: spacing.lg }}>
+      {content}
     </ThemedView>
   );
 }
 
 function EmptyState() {
+  const { t } = useTranslation();
   return (
     <View style={{ alignItems: 'center', paddingVertical: 64 }}>
-      <ThemedText type="subtitle">Nu am găsit locații</ThemedText>
-      <ThemedText>Încearcă să reîncarci pentru a vedea locațiile.</ThemedText>
+      <ThemedText type="subtitle">{t('explore.noLocationsTitle')}</ThemedText>
+      <ThemedText>{t('explore.noLocationsSubtitle')}</ThemedText>
     </View>
   );
 }
@@ -390,10 +473,10 @@ const calculateDistance = (
 };
 
 const RATING_OPTIONS = [
-  { label: 'Toate', value: 0 },
-  { label: '4.0+', value: 4 },
-  { label: '4.5+', value: 4.5 },
-];
+  { labelKey: 'explore.rating.all', value: 0 },
+  { labelKey: 'explore.rating.4', value: 4 },
+  { labelKey: 'explore.rating.45', value: 4.5 },
+] as const;
 
 type RatingFilterProps = {
   value: number;
@@ -404,6 +487,7 @@ function RatingFilter({ value, onChange }: RatingFilterProps) {
   const {
     tokens: { colors, spacing, components },
   } = useAppTheme();
+  const { t } = useTranslation();
 
   return (
     <View style={[styles.ratingFilter, { gap: spacing.xs }]}>
@@ -426,7 +510,7 @@ function RatingFilter({ value, onChange }: RatingFilterProps) {
             <ThemedText
               type="defaultSemiBold"
               style={{ color: isActive ? '#ffffff' : colors.text }}>
-              {option.label}
+              {t(option.labelKey)}
             </ThemedText>
           </Pressable>
         );

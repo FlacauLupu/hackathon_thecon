@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
-import { useAppTheme } from '@/contexts/theme-context';
-import { Location } from '@/types/location';
 import { ThemedText } from '@/components/themed-text';
 import { WhatsAppButton } from '@/components/whatsapp-button';
+import { useTranslation } from '@/contexts/language-context';
+import { useAppTheme } from '@/contexts/theme-context';
+import { Location } from '@/types/location';
 
 type Props = {
   location: Location;
@@ -18,6 +19,11 @@ export function LocationCard({ location, onPress, isFavorite = false, onToggleFa
   const {
     tokens: { colors, components, spacing },
   } = useAppTheme();
+  const { t, language } = useTranslation();
+  const whatsappMessage =
+    language === 'en'
+      ? `Hi! I'd love to book or get more details about ${location.name}.`
+      : `Salut! Aș dori o rezervare / mai multe detalii pentru ${location.name}.`;
 
   return (
     <Pressable
@@ -68,7 +74,9 @@ export function LocationCard({ location, onPress, isFavorite = false, onToggleFa
         </ThemedText>
         {distanceKm != null && (
           <ThemedText style={{ color: colors.mutedText, marginBottom: spacing.xs }}>
-            {formatDistance(distanceKm)}
+            {distanceKm < 1
+              ? t('distance.meters', { meters: Math.round(distanceKm * 1000) })
+              : t('distance.kilometers', { km: distanceKm.toFixed(1) })}
           </ThemedText>
         )}
         <View style={styles.addressRow}>
@@ -89,8 +97,8 @@ export function LocationCard({ location, onPress, isFavorite = false, onToggleFa
           </View>
           <WhatsAppButton
             variant="ghost"
-            message={`Salut! Aș dori o rezervare / mai multe detalii pentru ${location.name}.`}
-            label="Rezervă"
+            message={whatsappMessage}
+            label={t('location.reserve')}
           />
         </View>
       </View>
@@ -133,11 +141,4 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
 });
-
-const formatDistance = (value: number) => {
-  if (value < 1) {
-    return `${Math.round(value * 1000)} m distanță`;
-  }
-  return `${value.toFixed(1)} km distanță`;
-};
 

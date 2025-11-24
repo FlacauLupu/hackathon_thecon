@@ -5,6 +5,7 @@ import { PropsWithChildren, useMemo } from 'react';
 import 'react-native-reanimated';
 
 import { AuthProvider } from '@/contexts/auth-context';
+import { LanguageProvider } from '@/contexts/language-context';
 import { LocationsProvider } from '@/contexts/locations-context';
 import { ThemeProvider, useAppTheme } from '@/contexts/theme-context';
 import { UserDataProvider } from '@/contexts/user-data-context';
@@ -54,15 +55,17 @@ function AppNavigatorShell() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <NavigationTheme>
-          <LocationsProvider>
-            <UserDataProvider>
-              <AppNavigatorShell />
-            </UserDataProvider>
-          </LocationsProvider>
-        </NavigationTheme>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <NavigationTheme>
+            <LocationsProvider>
+              <UserDataProvider>
+                <AppNavigatorShell />
+              </UserDataProvider>
+            </LocationsProvider>
+          </NavigationTheme>
+        </AuthProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

@@ -1,21 +1,25 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { LoadingIndicator } from '@/components/loading-indicator';
+import { ThemedText } from '@/components/themed-text';
+import { useTranslation } from '@/contexts/language-context';
 import { useAppTheme } from '@/contexts/theme-context';
 import { recommendLocation, type ChatMessage } from '@/services/ai-service';
 import { Location } from '@/types/location';
-
-import { LoadingIndicator } from './loading-indicator';
-import { ThemedText } from './themed-text';
+import { Review } from '@/types/review';
 
 type Props = {
   locations: Location[];
+  reviewsByLocation: Record<string, Review[]>;
+  userLocation: { lat: number; long: number } | null;
 };
 
-export function AIRecommender({ locations }: Props) {
+export function AIRecommender({ locations, reviewsByLocation, userLocation }: Props) {
   const {
     tokens: { colors, spacing, components },
   } = useAppTheme();
+  const { t, language } = useTranslation();
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -38,11 +42,15 @@ export function AIRecommender({ locations }: Props) {
     setErrorMessage(null);
 
     try {
-      const reply = await recommendLocation(userMessage.content, locations, history);
+      const reply = await recommendLocation(userMessage.content, locations, history, {
+        language,
+        reviewsByLocation,
+        userLocation,
+      });
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
     } catch (error) {
       console.error('AI chat failed', error);
-      setErrorMessage('Nu am reușit să vorbesc cu asistentul. Încearcă din nou.');
+      setErrorMessage(t('explore.assistantError'));
     } finally {
       setIsThinking(false);
     }
@@ -61,10 +69,8 @@ export function AIRecommender({ locations }: Props) {
         },
       ]}>
       <View style={{ gap: spacing.xs }}>
-        <ThemedText type="subtitle">Asistent AI</ThemedText>
-        <ThemedText style={{ color: colors.mutedText }}>
-          Spune-i ce fel de vibe cauți, iar el îți recomandă un loc care ți se potrivește.
-        </ThemedText>
+        <ThemedText type="subtitle">{t('explore.assistantTitle')}</ThemedText>
+        <ThemedText style={{ color: colors.mutedText }}>{t('explore.assistantSubtitle')}</ThemedText>
       </View>
 
       <View
@@ -78,7 +84,7 @@ export function AIRecommender({ locations }: Props) {
           },
         ]}>
         {messages.length === 0 && (
-          <ThemedText style={{ color: colors.mutedText }}>Nu ai început conversația încă.</ThemedText>
+          <ThemedText style={{ color: colors.mutedText }}>{t('explore.assistantEmpty')}</ThemedText>
         )}
         {messages.map((message, index) => (
           <View
@@ -106,7 +112,7 @@ export function AIRecommender({ locations }: Props) {
 
       <View style={{ gap: spacing.sm }}>
         <TextInput
-          placeholder="Ex: Vreau un coffee shop liniștit cu prăjituri"
+          placeholder={t('explore.assistantPlaceholder')}
           value={prompt}
           onChangeText={setPrompt}
           placeholderTextColor={colors.mutedText}
@@ -134,7 +140,7 @@ export function AIRecommender({ locations }: Props) {
             },
           ]}>
           <ThemedText type="defaultSemiBold" style={{ color: '#ffffff', textAlign: 'center' }}>
-            {isThinking ? 'Se gândește...' : 'Recomandă-mi un loc'}
+            {isThinking ? t('explore.assistantLoading') : t('explore.assistantButton')}
           </ThemedText>
         </Pressable>
       </View>

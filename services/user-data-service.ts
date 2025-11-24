@@ -89,6 +89,25 @@ export const listReviewsByUser = async (userId: number): Promise<Review[]> => {
   return rows;
 };
 
+export const listAllReviews = async (): Promise<Review[]> => {
+  const rows = await queryAll<Review>(
+    `
+    SELECT
+      reviews.id,
+      reviews.user_id as userId,
+      reviews.location_id as locationId,
+      reviews.rating,
+      reviews.comment,
+      reviews.created_at as createdAt,
+      users.name as userName
+    FROM reviews
+    JOIN users ON users.id = reviews.user_id
+    ORDER BY reviews.created_at DESC
+  `,
+  );
+  return rows;
+};
+
 export const getReviewForLocation = async (userId: number, locationId: string): Promise<Review | null> => {
   const [row] = await queryAll<Review>(
     `
