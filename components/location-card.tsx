@@ -11,9 +11,10 @@ type Props = {
   onPress: (locationId: string) => void;
   isFavorite?: boolean;
   onToggleFavorite?: (locationId: string) => void;
+  distanceKm?: number;
 };
 
-export function LocationCard({ location, onPress, isFavorite = false, onToggleFavorite }: Props) {
+export function LocationCard({ location, onPress, isFavorite = false, onToggleFavorite, distanceKm }: Props) {
   const {
     tokens: { colors, components, spacing },
   } = useAppTheme();
@@ -65,6 +66,11 @@ export function LocationCard({ location, onPress, isFavorite = false, onToggleFa
         <ThemedText type="subtitle" style={{ marginBottom: spacing.xs }}>
           {location.name}
         </ThemedText>
+        {distanceKm != null && (
+          <ThemedText style={{ color: colors.mutedText, marginBottom: spacing.xs }}>
+            {formatDistance(distanceKm)}
+          </ThemedText>
+        )}
         <View style={styles.addressRow}>
           <Ionicons name="location-outline" size={18} color={colors.mutedText} />
           <ThemedText style={{ color: colors.mutedText }} numberOfLines={1}>
@@ -127,4 +133,11 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
 });
+
+const formatDistance = (value: number) => {
+  if (value < 1) {
+    return `${Math.round(value * 1000)} m distanță`;
+  }
+  return `${value.toFixed(1)} km distanță`;
+};
 
