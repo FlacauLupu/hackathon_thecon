@@ -93,7 +93,12 @@ type RawLocation = {
   rating: number;
 };
 
-const SEED_USER_EMAIL = 'guide@foodio.app';
+const SEED_ACCOUNTS = [
+  { name: 'Local Guide', email: 'guide@foodio.app' },
+  { name: 'Food Explorer', email: 'foodie@foodio.app' },
+  { name: 'City Nomad', email: 'nomad@foodio.app' },
+  { name: 'Night Owl', email: 'nightowl@foodio.app' },
+];
 
 const seedDemoContent = async () => {
   const reviewRows = await db.getAllAsync<{ count: number }>('SELECT COUNT(*) as count FROM reviews');
@@ -103,60 +108,96 @@ const seedDemoContent = async () => {
     return;
   }
 
-  const userId = await ensureSeedUser();
-  await insertSeedReviews(userId);
+  const userIds = await ensureSeedUsers();
+  await insertSeedReviews(userIds);
 };
 
-const ensureSeedUser = async () => {
-  const existing = await db.getAllAsync<{ id: number }>('SELECT id FROM users WHERE email = ?', SEED_USER_EMAIL);
+const ensureSeedUsers = async () => {
+  const ids: number[] = [];
 
-  if (existing?.[0]?.id) {
-    return existing[0].id;
+  for (const account of SEED_ACCOUNTS) {
+    const existing = await db.getAllAsync<{ id: number }>('SELECT id FROM users WHERE email = ?', account.email);
+
+    if (existing?.[0]?.id) {
+      ids.push(existing[0].id);
+      continue;
+    }
+
+    const passwordHash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, 'demo123!');
+    await execute('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)', [
+      account.name,
+      account.email,
+      passwordHash,
+    ]);
+
+    const [created] =
+      (await db.getAllAsync<{ id: number }>('SELECT id FROM users WHERE email = ?', account.email)) ?? [];
+    if (created?.id) {
+      ids.push(created.id);
+    }
   }
 
-  const passwordHash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, 'demo123!');
-  await execute('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)', [
-    'Local Guide',
-    SEED_USER_EMAIL,
-    passwordHash,
-  ]);
-
-  const [created] =
-    (await db.getAllAsync<{ id: number }>('SELECT id FROM users WHERE email = ?', SEED_USER_EMAIL)) ?? [];
-  return created?.id ?? 1;
+  return ids;
 };
 
-const insertSeedReviews = async (userId: number) => {
+const insertSeedReviews = async (userIds: number[]) => {
   const locations = rawLocations as RawLocation[];
   const now = Date.now();
 
   for (let index = 0; index < locations.length; index += 1) {
     const location = locations[index];
     const locationId = `${slugify(location.name)}-${index}`;
-    const rating = Math.min(5, Math.max(3.8, Number((location.rating + randomFloat(-0.3, 0.2)).toFixed(1))));
-    const comment = buildSeedComment(location);
-    const createdAt = new Date(now - index * 60 * 60 * 1000).toISOString();
+    const reviewersCount = Math.min(userIds.length, 2 + (index % 3));
+    const selectedUsers = shuffleArray(userIds).slice(0, reviewersCount);
 
-    await execute(
-      `
-        INSERT INTO reviews (user_id, location_id, rating, comment, created_at)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(user_id, location_id)
-        DO UPDATE SET rating = excluded.rating, comment = excluded.comment, created_at = excluded.created_at
-      `,
-      [userId, locationId, rating, comment, createdAt],
-    );
+    for (let order = 0; order < selectedUsers.length; order += 1) {
+      const userId = selectedUsers[order];
+      const rating = Math.min(
+        5,
+        Math.max(3.7, Number((location.rating + randomFloat(-0.4, 0.3) + order * 0.05).toFixed(1))),
+      );
+      const comment = buildSeedComment(location, order);
+      const createdAt = new Date(now - (index * 60 + order * 5) * 60 * 1000).toISOString();
+
+      await execute(
+        `
+          INSERT INTO reviews (user_id, location_id, rating, comment, created_at)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(user_id, location_id)
+          DO UPDATE SET rating = excluded.rating, comment = excluded.comment, created_at = excluded.created_at
+        `,
+        [userId, locationId, rating, comment, createdAt],
+      );
+    }
   }
 };
 
 const adjectives = ['vibrantă', 'caldă', 'prietenoasă', 'relaxantă', 'energică'];
 const highlights = ['serviciul', 'meniul', 'muzica', 'designul', 'lumina'];
 
-const buildSeedComment = (location: RawLocation) => {
-  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const highlight = highlights[Math.floor(Math.random() * highlights.length)];
-  return `Atmosfera de la ${location.name} este ${adjective}, iar ${highlight} completează perfect descrierea: ${location.short_description}.`;
+const buildSeedComment = (location: RawLocation, variantIndex: number) => {
+  const adjective = adjectives[variantIndex % adjectives.length];
+  const highlight = highlights[(variantIndex + 2) % highlights.length];
+  const city = getCityFromAddress(location.address);
+  const leadIn = variantIndex % 2 === 0 ? 'Îmi place' : 'Ne-a cucerit';
+  return `${leadIn} vibe-ul ${adjective} de la ${location.name} din ${city}. ${
+    highlight.charAt(0).toUpperCase() + highlight.slice(1)
+  } rezonează perfect cu descrierea: ${location.short_description}.`;
+};
+
+const getCityFromAddress = (address: string) => {
+  const parts = address.split(',');
+  return parts[parts.length - 1]?.trim() ?? 'oraș';
 };
 
 const randomFloat = (min: number, max: number) => Math.random() * (max - min) + min;
+
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const copy = [...array];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+};
 

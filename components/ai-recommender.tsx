@@ -123,6 +123,7 @@ export function AIRecommender({ locations, reviewsByLocation, userLocation }: Pr
               color: colors.text,
               borderRadius: components.buttonRadius,
               padding: spacing.md,
+              textAlignVertical: 'top',
             },
           ]}
           multiline

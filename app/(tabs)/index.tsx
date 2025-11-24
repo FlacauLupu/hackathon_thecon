@@ -1,7 +1,7 @@
 import * as ExpoLocation from 'expo-location';
 import { Redirect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import MapView, { Callout, Marker } from 'react-native-maps';
 
 import { AIRecommender } from '@/components/ai-recommender';
@@ -346,22 +346,28 @@ export default function ExploreScreen() {
                     longitude: location.coordinates.long,
                   }}
                   pinColor={colors.mapMarker}>
-                  <Callout onPress={() => handleNavigate(location.id)}>
-                    <View
+                  <Callout tooltip onPress={() => handleNavigate(location.id)}>
+                    <Pressable
                       style={[
-                        styles.callout,
+                        styles.calloutBubble,
                         {
                           borderColor: colors.border,
                           backgroundColor: colors.surface,
                         },
                       ]}>
-                      <ThemedText type="defaultSemiBold">{location.name}</ThemedText>
-                      <ThemedText style={{ color: colors.mutedText }}>{location.address}</ThemedText>
-                      <ThemedText>{location.rating.toFixed(1)} ⭐</ThemedText>
+                      <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.calloutTitle}>
+                        {location.name}
+                      </ThemedText>
+                      <ThemedText style={{ color: colors.mutedText }}>
+                        ⭐ {location.rating.toFixed(1)}
+                      </ThemedText>
+                      <ThemedText numberOfLines={2} style={styles.calloutDescription}>
+                        {location.shortDescription}
+                      </ThemedText>
                       <ThemedText type="link" style={{ color: colors.accent, marginTop: spacing.xs }}>
                         {t('explore.calloutDetails')}
                       </ThemedText>
-                    </View>
+                    </Pressable>
                   </Callout>
                 </Marker>
               ))}
@@ -372,31 +378,37 @@ export default function ExploreScreen() {
     );
   } else {
     content = (
-      <ScrollView
-        contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}
-        showsVerticalScrollIndicator={false}>
-        {heroContent}
-        {controls}
-        {locationHelper}
-        {locatingHint}
-        {error && (
-          <View>
-            <ThemedText style={{ color: colors.warning }}>{error}</ThemedText>
-            {retryButton}
-          </View>
-        )}
-        {isLoadingReviews ? (
-          <LoadingIndicator size="small" />
-        ) : filteredLocations.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <AIRecommender
-            locations={filteredLocations}
-            reviewsByLocation={reviewsByLocation}
-            userLocation={userLocation}
-          />
-        )}
-      </ScrollView>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}>
+        <ScrollView
+          contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
+          {heroContent}
+          {controls}
+          {locationHelper}
+          {locatingHint}
+          {error && (
+            <View>
+              <ThemedText style={{ color: colors.warning }}>{error}</ThemedText>
+              {retryButton}
+            </View>
+          )}
+          {isLoadingReviews ? (
+            <LoadingIndicator size="small" />
+          ) : filteredLocations.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <AIRecommender
+              locations={filteredLocations}
+              reviewsByLocation={reviewsByLocation}
+              userLocation={userLocation}
+            />
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -549,10 +561,22 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: 12,
   },
-  callout: {
+  calloutBubble: {
     borderWidth: StyleSheet.hairlineWidth,
     padding: 12,
     maxWidth: 220,
+    borderRadius: 12,
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  calloutTitle: {
+    marginBottom: 2,
+  },
+  calloutDescription: {
+    marginTop: 4,
   },
   ratingFilter: {
     flexDirection: 'row',
