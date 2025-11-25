@@ -171,7 +171,7 @@ export default function ExploreScreen() {
   const controls = (
     <View style={[styles.controls, { gap: spacing.sm }]}>
       <ViewModeToggle value={viewMode} onChange={setViewMode} options={viewOptions} />
-      <RatingFilter value={ratingFilter} onChange={setRatingFilter} />
+      {viewMode !== 'assistant' && <RatingFilter value={ratingFilter} onChange={setRatingFilter} />}
     </View>
   );
 
