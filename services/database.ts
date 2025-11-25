@@ -147,7 +147,7 @@ const insertSeedReviews = async (userIds: number[]) => {
   for (let index = 0; index < locations.length; index += 1) {
     const location = locations[index];
     const locationId = `${slugify(location.name)}-${index}`;
-    const reviewersCount = Math.min(userIds.length, 2 + (index % 3));
+    const reviewersCount = Math.min(userIds.length, 4 + (index % 2));
     const selectedUsers = shuffleArray(userIds).slice(0, reviewersCount);
 
     for (let order = 0; order < selectedUsers.length; order += 1) {
@@ -172,8 +172,8 @@ const insertSeedReviews = async (userIds: number[]) => {
   }
 };
 
-const adjectives = ['vibrantă', 'caldă', 'prietenoasă', 'relaxantă', 'energică'];
-const highlights = ['serviciul', 'meniul', 'muzica', 'designul', 'lumina'];
+const adjectives = ['vibrantă', 'caldă', 'prietenoasă', 'relaxantă', 'energică', 'intimă', 'urbană', 'boemă'];
+const highlights = ['serviciul', 'meniul', 'muzica', 'designul', 'lumina', 'personalul', 'desertul', 'barista'];
 
 const buildSeedComment = (location: RawLocation, variantIndex: number) => {
   const adjective = adjectives[variantIndex % adjectives.length];

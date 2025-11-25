@@ -346,8 +346,8 @@ export default function ExploreScreen() {
                     longitude: location.coordinates.long,
                   }}
                   pinColor={colors.mapMarker}>
-                  <Callout tooltip onPress={() => handleNavigate(location.id)}>
-                    <Pressable
+                  <Callout tooltip>
+                    <View
                       style={[
                         styles.calloutBubble,
                         {
@@ -364,10 +364,20 @@ export default function ExploreScreen() {
                       <ThemedText numberOfLines={2} style={styles.calloutDescription}>
                         {location.shortDescription}
                       </ThemedText>
-                      <ThemedText type="link" style={{ color: colors.accent, marginTop: spacing.xs }}>
-                        {t('explore.calloutDetails')}
-                      </ThemedText>
-                    </Pressable>
+                      <Pressable
+                        onPress={() => handleNavigate(location.id)}
+                        style={[
+                          styles.calloutButton,
+                          {
+                            borderColor: colors.accent,
+                            backgroundColor: colors.accent,
+                          },
+                        ]}>
+                        <ThemedText type="defaultSemiBold" style={{ color: '#ffffff' }}>
+                          {t('explore.calloutButton')}
+                        </ThemedText>
+                      </Pressable>
+                    </View>
                   </Callout>
                 </Marker>
               ))}
@@ -378,12 +388,12 @@ export default function ExploreScreen() {
     );
   } else {
     content = (
-      <KeyboardAvoidingView
+    <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}>
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 96 : 20}>
         <ScrollView
-          contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl }}
+          contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl * 2 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
           {heroContent}
@@ -577,6 +587,13 @@ const styles = StyleSheet.create({
   },
   calloutDescription: {
     marginTop: 4,
+  },
+  calloutButton: {
+    marginTop: 8,
+    paddingVertical: 6,
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   ratingFilter: {
     flexDirection: 'row',
