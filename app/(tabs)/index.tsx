@@ -3,6 +3,8 @@ import { Redirect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import MapView, { Callout, Marker } from 'react-native-maps';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AIRecommender } from '@/components/ai-recommender';
 import { LoadingIndicator } from '@/components/loading-indicator';
@@ -32,6 +34,8 @@ export default function ExploreScreen() {
   const [reviewsByLocation, setReviewsByLocation] = useState<Record<string, Review[]>>({});
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight?.() ?? 0;
   const {
     tokens: { colors, spacing, components },
   } = useAppTheme();
@@ -345,8 +349,9 @@ export default function ExploreScreen() {
                     latitude: location.coordinates.lat,
                     longitude: location.coordinates.long,
                   }}
-                  pinColor={colors.mapMarker}>
-                  <Callout tooltip>
+                  pinColor={colors.mapMarker}
+                  onPress={() => handleNavigate(location.id)}>
+                  <Callout tooltip onPress={() => handleNavigate(location.id)}>
                     <View
                       style={[
                         styles.calloutBubble,
@@ -364,19 +369,6 @@ export default function ExploreScreen() {
                       <ThemedText numberOfLines={2} style={styles.calloutDescription}>
                         {location.shortDescription}
                       </ThemedText>
-                      <Pressable
-                        onPress={() => handleNavigate(location.id)}
-                        style={[
-                          styles.calloutButton,
-                          {
-                            borderColor: colors.accent,
-                            backgroundColor: colors.accent,
-                          },
-                        ]}>
-                        <ThemedText type="defaultSemiBold" style={{ color: '#ffffff' }}>
-                          {t('explore.calloutButton')}
-                        </ThemedText>
-                      </Pressable>
                     </View>
                   </Callout>
                 </Marker>
@@ -387,13 +379,21 @@ export default function ExploreScreen() {
       </View>
     );
   } else {
+    const keyboardVerticalOffset =
+      Platform.OS === 'ios'
+        ? tabBarHeight + insets.bottom + 24
+        : tabBarHeight + insets.bottom;
     content = (
-    <KeyboardAvoidingView
+      <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 96 : 20}>
+        keyboardVerticalOffset={keyboardVerticalOffset}>
         <ScrollView
-          contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.xl * 2 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            gap: spacing.lg,
+            paddingBottom: spacing.xl * 2 + tabBarHeight + insets.bottom,
+          }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
           {heroContent}
@@ -587,13 +587,6 @@ const styles = StyleSheet.create({
   },
   calloutDescription: {
     marginTop: 4,
-  },
-  calloutButton: {
-    marginTop: 8,
-    paddingVertical: 6,
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   ratingFilter: {
     flexDirection: 'row',
